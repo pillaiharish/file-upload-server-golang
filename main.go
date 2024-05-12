@@ -48,6 +48,7 @@ func fileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var successfulUploads []string
+	// Below loop ensures multi-file upload
 	for _, fileHeader := range files {
 		file, err := fileHeader.Open()
 		if err != nil {
@@ -85,6 +86,9 @@ func fileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to upload any files", http.StatusInternalServerError)
 	}
 
+	/*
+		Below lines of code for single file upload
+	*/
 	// file, header, err = r.FormFile("file")
 	// if err != nil {
 	// 	http.Error(w, "Error retrieving the file", http.StatusInternalServerError)
