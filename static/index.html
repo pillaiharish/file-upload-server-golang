@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Uploader</title>
+</head>
+<body>
+    <h1>Upload File to MacBook</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="fileInput"  multiple required>
+        <button type="submit">Upload Files</button>
+    </form>
+    <div id="responseArea"></div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            const fileInput = document.getElementById('fileInput');
+            const files = fileInput.files;
+            if (files.length === 0) {
+                alert("Please select at least one file.");
+                return;
+            }
+
+            const formData = new FormData();
+            Array.from(files).forEach(file => {
+                formData.append('files', file);
+            });
+
+            fetch('http://192.168.0.148:8989/upload', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('responseArea').innerText = data;
+            })
+            .catch(error => {
+                console.error('Error uploading file:', error);
+                document.getElementById('responseArea').innerText = 'Failed to upload file.';
+            });
+        });
+    </script>
+</body>
+</html>
