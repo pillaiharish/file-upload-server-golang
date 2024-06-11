@@ -12,12 +12,13 @@
         <!-- <input type="file" id="fileInput" required> -->
         <button type="submit">Upload Files</button>
     </form>
+    <p id="message"></p>
     <div id="responseArea"></div>
 
     <script>
         document.getElementById('uploadForm').addEventListener('submit', function(event) {
             event.preventDefault(); // Prevent the default form submission
-
+            document.getElementById('message').innerText = "Uploading files started";
             const fileInput = document.getElementById('fileInput');
             // const file = fileInput.files[0];
             const files = fileInput.files;
