@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -51,11 +52,33 @@ func fileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Below loop ensures multi-file upload
 	for _, fileHeader := range files {
 		file, err := fileHeader.Open()
+		now := time.Now()
+		format := "2006-01-02 15:04:05"
+
+		// Format the timestamp and print it
+
 		if err != nil {
 			fmt.Println("Error retrieving the file", err)
 			continue
 		}
 		defer file.Close()
+
+		fileName := fileHeader.Header.Get("Content-Disposition")
+
+		// Extract file name from Content-Disposition header (optional parsing)
+		var actualFileName string
+		if fileName != "" {
+			// Basic parsing (can be improved for robustness)
+			parts := strings.Split(fileName, `;`)
+			for _, part := range parts {
+				if strings.Contains(part, "filename=") {
+					actualFileName = strings.TrimSpace(strings.SplitN(part, "=", 2)[1])
+					break
+				}
+			}
+		}
+		timestamp := now.Format(format)
+		fmt.Printf("%s: File being uploaded: %s\n\n", timestamp, actualFileName)
 
 		// Create a new file in the uploads directory
 		newPath := filepath.Join("/Users/harishkumarpillai/.uploads", filepath.Base(fileHeader.Filename))
@@ -67,6 +90,7 @@ func fileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		defer newFile.Close()
 
 		bytesWritten, err := io.Copy(newFile, file)
+		fmt.Fprintf(w, "File size is %d\n", bytesWritten)
 		if err != nil {
 			http.Error(w, "Error saving the file", http.StatusInternalServerError)
 			fmt.Println(err)
