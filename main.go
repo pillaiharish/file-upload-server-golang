@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -48,60 +50,68 @@ func fileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(len(files))
+
 	var successfulUploads []string
 	// Below loop ensures multi-file upload
+
 	for _, fileHeader := range files {
-		file, err := fileHeader.Open()
-		now := time.Now()
-		format := "2006-01-02 15:04:05"
+		go func(fileHeader *multipart.FileHeader) {
+			defer wg.Done()
+			file, err := fileHeader.Open()
+			now := time.Now()
+			format := "2006-01-02 15:04:05"
 
-		// Format the timestamp and print it
+			// Format the timestamp and print it
 
-		if err != nil {
-			fmt.Println("Error retrieving the file", err)
-			continue
-		}
-		defer file.Close()
+			if err != nil {
+				fmt.Println("Error retrieving the file", err)
+				// continue
+			}
+			defer file.Close()
 
-		fileName := fileHeader.Header.Get("Content-Disposition")
+			fileName := fileHeader.Header.Get("Content-Disposition")
 
-		// Extract file name from Content-Disposition header (optional parsing)
-		var actualFileName string
-		if fileName != "" {
-			// Basic parsing (can be improved for robustness)
-			parts := strings.Split(fileName, `;`)
-			for _, part := range parts {
-				if strings.Contains(part, "filename=") {
-					actualFileName = strings.TrimSpace(strings.SplitN(part, "=", 2)[1])
-					break
+			// Extract file name from Content-Disposition header (optional parsing)
+			var actualFileName string
+			if fileName != "" {
+				// Basic parsing (can be improved for robustness)
+				parts := strings.Split(fileName, `;`)
+				for _, part := range parts {
+					if strings.Contains(part, "filename=") {
+						actualFileName = strings.TrimSpace(strings.SplitN(part, "=", 2)[1])
+						break
+					}
 				}
 			}
-		}
-		timestamp := now.Format(format)
-		fmt.Printf("%s: File being uploaded: %s\n\n", timestamp, actualFileName)
+			timestamp := now.Format(format)
+			fmt.Printf("%s: File being uploaded: %s\n\n", timestamp, actualFileName)
 
-		// Create a new file in the uploads directory
-		newPath := filepath.Join("/Users/harishkumarpillai/.uploads", filepath.Base(fileHeader.Filename))
-		newFile, err := os.Create(newPath)
-		if err != nil {
-			fmt.Println("Error creating the file", err)
-			continue
-		}
-		defer newFile.Close()
+			// Create a new file in the uploads directory
+			newPath := filepath.Join("/Users/harishkumarpillai/.uploads", filepath.Base(fileHeader.Filename))
+			newFile, err := os.Create(newPath)
+			if err != nil {
+				fmt.Println("Error creating the file", err)
+				// continue
+			}
+			defer newFile.Close()
 
-		bytesWritten, err := io.Copy(newFile, file)
-		fmt.Fprintf(w, "File size is %d\n", bytesWritten)
-		if err != nil {
-			http.Error(w, "Error saving the file", http.StatusInternalServerError)
-			fmt.Println(err)
-			return
-		}
+			bytesWritten, err := io.Copy(newFile, file)
+			fmt.Fprintf(w, "File size is %d\n", bytesWritten)
+			if err != nil {
+				http.Error(w, "Error saving the file", http.StatusInternalServerError)
+				fmt.Println(err)
+				return
+			}
 
-		successfulUploads = append(successfulUploads, fileHeader.Filename)
-		logUploadDetails(fileHeader.Filename, bytesWritten)
-		fmt.Fprintf(w, "File uploaded successfully: %+v", fileHeader.Filename)
+			successfulUploads = append(successfulUploads, fileHeader.Filename)
+			logUploadDetails(fileHeader.Filename, bytesWritten)
+			fmt.Fprintf(w, "File uploaded successfully: %+v", fileHeader.Filename)
 
+		}(fileHeader)
 	}
+	wg.Wait()
 
 	// Report back to client
 	if len(successfulUploads) > 0 {
