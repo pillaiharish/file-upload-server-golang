@@ -7,23 +7,17 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 )
 
 func main() {
-	// home, err := os.UserHomeDir()
-	// uploadPath := filepath.Join(home, "/.upload")
 	os.MkdirAll("/Users/harishkumarpillai/.uploads", os.ModePerm)
-	// fmt.Println("Home directory:", uploadPath)
-	// Serving static files
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/", fs)
 
-	// Handle file uploads
 	http.HandleFunc("/upload", fileUploadHandler)
-	fmt.Println("Server started on :8989")
+	fmt.Println("Server started on :8189")
 	err := http.ListenAndServe(":8989", nil)
 	if err != nil {
 		fmt.Printf("Error starting server: %s\n", err)
@@ -37,121 +31,65 @@ func fileUploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Ensure the ParseMultipartForm method is called before retrieving files
-	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10 MB
-		http.Error(w, "Failed to parse multipart form: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Retrieve files from the posted form-data
-	files := r.MultipartForm.File["files"]
-	if files == nil {
-		http.Error(w, "No files received", http.StatusBadRequest)
+	reader, err := r.MultipartReader()
+	if err != nil {
+		http.Error(w, "Failed to create multipart reader: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(len(files))
-
 	var successfulUploads []string
-	// Below loop ensures multi-file upload
 
-	for _, fileHeader := range files {
-		go func(fileHeader *multipart.FileHeader) {
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			http.Error(w, "Failed to read multipart data: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if part.FileName() == "" {
+			continue
+		}
+
+		wg.Add(1)
+		go func(part *multipart.Part) {
 			defer wg.Done()
-			file, err := fileHeader.Open()
+
 			now := time.Now()
 			format := "2006-01-02 15:04:05"
-
-			// Format the timestamp and print it
-
-			if err != nil {
-				fmt.Println("Error retrieving the file", err)
-				// continue
-			}
-			defer file.Close()
-
-			fileName := fileHeader.Header.Get("Content-Disposition")
-
-			// Extract file name from Content-Disposition header (optional parsing)
-			var actualFileName string
-			if fileName != "" {
-				// Basic parsing (can be improved for robustness)
-				parts := strings.Split(fileName, `;`)
-				for _, part := range parts {
-					if strings.Contains(part, "filename=") {
-						actualFileName = strings.TrimSpace(strings.SplitN(part, "=", 2)[1])
-						break
-					}
-				}
-			}
 			timestamp := now.Format(format)
-			fmt.Printf("%s: File being uploaded: %s\n\n", timestamp, actualFileName)
+			fmt.Printf("%s: File being uploaded: %s\n", timestamp, part.FileName())
 
-			// Create a new file in the uploads directory
-			newPath := filepath.Join("/Users/harishkumarpillai/.uploads", filepath.Base(fileHeader.Filename))
+			newPath := filepath.Join("/Users/harishkumarpillai/.uploads", filepath.Base(part.FileName()))
 			newFile, err := os.Create(newPath)
 			if err != nil {
 				fmt.Println("Error creating the file", err)
-				// continue
+				return
 			}
 			defer newFile.Close()
 
-			bytesWritten, err := io.Copy(newFile, file)
-			fmt.Fprintf(w, "File size is %d\n", bytesWritten)
+			bytesWritten, err := io.Copy(newFile, part)
 			if err != nil {
-				http.Error(w, "Error saving the file", http.StatusInternalServerError)
-				fmt.Println(err)
+				fmt.Println("Error saving the file", err)
 				return
 			}
 
-			successfulUploads = append(successfulUploads, fileHeader.Filename)
-			logUploadDetails(fileHeader.Filename, bytesWritten)
-			fmt.Fprintf(w, "File uploaded successfully: %+v", fileHeader.Filename)
-
-		}(fileHeader)
+			successfulUploads = append(successfulUploads, part.FileName())
+			logUploadDetails(part.FileName(), bytesWritten)
+			fmt.Fprintf(w, "File uploaded successfully: %+v\n", part.FileName())
+		}(part)
 	}
+
 	wg.Wait()
 
-	// Report back to client
 	if len(successfulUploads) > 0 {
 		fmt.Fprintf(w, "Successfully uploaded files: %v", successfulUploads)
 	} else {
 		http.Error(w, "Failed to upload any files", http.StatusInternalServerError)
 	}
-
-	/*
-		Below lines of code for single file upload
-	*/
-	// file, header, err = r.FormFile("file")
-	// if err != nil {
-	// 	http.Error(w, "Error retrieving the file", http.StatusInternalServerError)
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// defer file.Close()
-	// newPath := filepath.Join("/Users/harishkumarpillai/.uploads", filepath.Base(header.Filename))
-
-	// fmt.Printf("Uploaded File: %+v\n", header.Filename)
-	// fmt.Printf("File Size: %+v\n", header.Size)
-	// fmt.Printf("MIME Header: %+v\n", header.Header)
-
-	// newFile, err := os.Create(newPath)
-	// if err != nil {
-	// 	http.Error(w, "Error creating the file", http.StatusInternalServerError)
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// defer newFile.Close()
-
-	// bytesWritten, err := io.Copy(newFile, file)
-	// if err != nil {
-	// 	http.Error(w, "Error saving the file", http.StatusInternalServerError)
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// logUploadDetails(header.Filename, bytesWritten)
-	// fmt.Fprintf(w, "File uploaded successfully: %+v", header.Filename)
 }
 
 func logUploadDetails(filename string, fileSize int64) {
