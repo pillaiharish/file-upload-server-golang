@@ -15,23 +15,36 @@ import (
 func main() {
 	// home, err := os.UserHomeDir()
 	// uploadPath := filepath.Join(home, "/.upload")
-	os.MkdirAll("/Users/harishkumarpillai/.uploads", os.ModePerm)
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Printf("Error getting home directory: %s\n", err)
+		return
+	}
+	uploadPath := filepath.Join(home, ".uploads")
+
+	err = os.MkdirAll(uploadPath, os.ModePerm)
+	if err != nil {
+		fmt.Println("Error creating upload directory:", err)
+		return
+	}
 	// fmt.Println("Home directory:", uploadPath)
 	// Serving static files
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/", fs)
 
 	// Handle file uploads
-	http.HandleFunc("/upload", fileUploadHandler)
+	http.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
+		fileUploadHandler(w, r, uploadPath)
+	})
 	fmt.Println("Server started on :8989")
-	err := http.ListenAndServe(":8989", nil)
+	err = http.ListenAndServe(":8989", nil)
 	if err != nil {
 		fmt.Printf("Error starting server: %s\n", err)
 		return
 	}
 }
 
-func fileUploadHandler(w http.ResponseWriter, r *http.Request) {
+func fileUploadHandler(w http.ResponseWriter, r *http.Request, uploadPath string) {
 	if r.Method != "POST" {
 		http.Error(w, "Only POST method is accepted", http.StatusMethodNotAllowed)
 		return
@@ -71,6 +84,14 @@ func fileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			defer file.Close()
 
+			newPath := filepath.Join(uploadPath, filepath.Base(fileHeader.Filename))
+			newFile, err := os.Create(newPath)
+			if err != nil {
+				fmt.Println("Error creating the file", err)
+				return
+			}
+			defer newFile.Close()
+
 			fileName := fileHeader.Header.Get("Content-Disposition")
 
 			// Extract file name from Content-Disposition header (optional parsing)
@@ -88,15 +109,6 @@ func fileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			timestamp := now.Format(format)
 			fmt.Printf("%s: File being uploaded: %s\n\n", timestamp, actualFileName)
 
-			// Create a new file in the uploads directory
-			newPath := filepath.Join("/Users/harishkumarpillai/.uploads", filepath.Base(fileHeader.Filename))
-			newFile, err := os.Create(newPath)
-			if err != nil {
-				fmt.Println("Error creating the file", err)
-				// continue
-			}
-			defer newFile.Close()
-
 			bytesWritten, err := io.Copy(newFile, file)
 			fmt.Fprintf(w, "File size is %d\n", bytesWritten)
 			if err != nil {
@@ -106,7 +118,7 @@ func fileUploadHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			successfulUploads = append(successfulUploads, fileHeader.Filename)
-			logUploadDetails(fileHeader.Filename, bytesWritten)
+			logUploadDetails(newPath, bytesWritten)
 			fmt.Fprintf(w, "File uploaded successfully: %+v", fileHeader.Filename)
 
 		}(fileHeader)
@@ -154,8 +166,8 @@ func fileUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// fmt.Fprintf(w, "File uploaded successfully: %+v", header.Filename)
 }
 
-func logUploadDetails(filename string, fileSize int64) {
-	logFile, err := os.OpenFile("/Users/harishkumarpillai/.uploads/upload_logs.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+func logUploadDetails(filePath string, fileSize int64) {
+	logFile, err := os.OpenFile(filePath+"upload_logs.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println("Error opening log file:", err)
 		return
@@ -163,7 +175,7 @@ func logUploadDetails(filename string, fileSize int64) {
 	defer logFile.Close()
 
 	now := time.Now()
-	logEntry := fmt.Sprintf("Upload: %s, Size: %d bytes, Date: %s\n", filename, fileSize, now.Format("2006-01-02 15:04:05"))
+	logEntry := fmt.Sprintf("Upload: %s, Size: %d bytes, Date: %s\n", filePath, fileSize, now.Format("2006-01-02 15:04:05"))
 	if _, err = logFile.WriteString(logEntry); err != nil {
 		fmt.Println("Error writing to log file:", err)
 	}
