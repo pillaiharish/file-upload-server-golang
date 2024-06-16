@@ -34,12 +34,16 @@ go run load_test.go
 
 
 ## Running vegeta
+```bash
 cd tests/vegeta
 ./attack.sh
+```
 
 
 ## Install vegeta
+```bash
 go install github.com/tsenart/vegeta@latest
+```
 
 ## Install Gnuplot:
 - On macOS: brew install gnuplot
@@ -48,12 +52,14 @@ go install github.com/tsenart/vegeta@latest
 
 
 ## Run the Attack and Plot the Data:
+```bash
 chmod +x tests/vegeta/attack.sh
 ./tests/vegeta/attack.sh &
 gnuplot -persist tests/vegeta/plot.gp
-
+```
 
 ## Cleanup:
 After you're done, you might want to remove the named pip
+```bash
 rm /tmp/results.bin
-
+```
