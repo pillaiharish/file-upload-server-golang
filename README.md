@@ -27,11 +27,13 @@ You need to have Go installed on your machine. To install Go, follow the instruc
 
    ```bash
    git clone https://github.com/pillaiharish/go-file-upload-server.git
+   ```
 
 ## Running load tests
+```bash
 cd tests
 go run load_test.go
-
+```
 
 ## Running vegeta
 ```bash
