@@ -118,7 +118,7 @@ func fileUploadHandler(w http.ResponseWriter, r *http.Request, uploadPath string
 			}
 
 			successfulUploads = append(successfulUploads, fileHeader.Filename)
-			logUploadDetails(newPath, bytesWritten)
+			logUploadDetails(uploadPath, filepath.Base(fileHeader.Filename), bytesWritten)
 			fmt.Fprintf(w, "File uploaded successfully: %+v", fileHeader.Filename)
 
 		}(fileHeader)
@@ -166,8 +166,8 @@ func fileUploadHandler(w http.ResponseWriter, r *http.Request, uploadPath string
 	// fmt.Fprintf(w, "File uploaded successfully: %+v", header.Filename)
 }
 
-func logUploadDetails(filePath string, fileSize int64) {
-	logFile, err := os.OpenFile(filePath+"upload_logs.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+func logUploadDetails(filePath string, newPath string, fileSize int64) {
+	logFile, err := os.OpenFile(filepath.Join(filePath, "upload_logs.txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println("Error opening log file:", err)
 		return
@@ -175,7 +175,7 @@ func logUploadDetails(filePath string, fileSize int64) {
 	defer logFile.Close()
 
 	now := time.Now()
-	logEntry := fmt.Sprintf("Upload: %s, Size: %d bytes, Date: %s\n", filePath, fileSize, now.Format("2006-01-02 15:04:05"))
+	logEntry := fmt.Sprintf("Upload: %s, Size: %d bytes, Date: %s\n", newPath, fileSize, now.Format("2006-01-02 15:04:05"))
 	if _, err = logFile.WriteString(logEntry); err != nil {
 		fmt.Println("Error writing to log file:", err)
 	}
