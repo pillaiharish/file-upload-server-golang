@@ -4,23 +4,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Uploader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin: 20px 0;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #message {
+            margin: 20px 0;
+            color: #ff0000;
+        }
+        #responseArea {
+            margin: 20px 0;
+            color: #007bff;
+        }
+    </style>
 </head>
 <body>
-    <h1>Upload File to Laptop</h1>
-    <form id="uploadForm" enctype="multipart/form-data">
-        <input type="file" id="fileInput"  multiple required>
-        <!-- <input type="file" id="fileInput" required> -->
-        <button type="submit">Upload Files</button>
-    </form>
-    <p id="message"></p>
-    <div id="responseArea"></div>
+    <div class="container">
+        <h1>Upload File to Laptop</h1>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" id="fileInput" multiple required>
+            <button type="submit">Upload Files</button>
+        </form>
+        <p id="message"></p>
+        <div id="responseArea"></div>
+    </div>
 
     <script>
         document.getElementById('uploadForm').addEventListener('submit', function(event) {
             event.preventDefault(); // Prevent the default form submission
             document.getElementById('message').innerText = "Uploading files started";
             const fileInput = document.getElementById('fileInput');
-            // const file = fileInput.files[0];
             const files = fileInput.files;
             if (files.length === 0) {
                 alert("Please select at least one file.");
@@ -31,8 +78,6 @@
             Array.from(files).forEach(file => {
                 formData.append('files', file);
             });
-            
-            // formData.append('files', file);
 
             fetch('http://192.168.0.101:8989/upload', {
                 method: 'POST',

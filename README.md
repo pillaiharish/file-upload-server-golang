@@ -45,6 +45,7 @@ This assumes you have golang already downloaded, installed and path variable set
 harish $ go run main.go
 Server started on :8989
 ```
+This will upload your file in uploads directory, where the server is running, which can be changed in main.go
 
 ## Running load tests
 ```bash
