@@ -83,5 +83,5 @@ After you're done, you might want to remove the named pip
 ```bash
 rm /tmp/results.bin
 ```
-## Mobile browser
-![Screeshot for client1](https://github.com/pillaiharish/file-upload-server-golang/blob/main/2024-06-20-mobile-browser.jpeg)
+## Screeshot for mobile browser
+![Screeshot for mobile browser](https://github.com/pillaiharish/file-upload-server-golang/blob/main/2024-06-20-mobile-browser.jpeg)
