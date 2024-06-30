@@ -29,7 +29,8 @@ You need to have Go installed on your machine. To install Go, follow the instruc
    git clone https://github.com/pillaiharish/go-file-upload-server.git
    ```
 
-**Check Private IP in you mac or windows**
+**Check Private IP in you mac or windows(Note the possible urls list in console support is added in commit 
+hash `ac15201`)**
 Here 192.168.0.101 is the IP on which the upload server will be hosted on home WiFi, 
 you visit ```192.168.0.101:8989``` to access webapp
    ```bash
@@ -40,10 +41,13 @@ you visit ```192.168.0.101:8989``` to access webapp
 
 **Run the upload server**
 On you mac or window open terminal or cmd and type below in folder home path where main.go is present
-This assumes you have golang already downloaded, installed and path variable set in your pc.
+This assumes you have golang already downloaded, installed and path variable set in your pc. 
+You will get possible urls for the private ips in the console
 ```bash
 harish $ go run main.go
 Server started on :8989
+Possible urls: http://192.168.0.100:8989 , http://192.168.2.1:8989 , 
+2024-06-30 13:23:32: File being uploaded: "IGI-Airport-1.jpeg"
 ```
 This will upload your file in uploads directory, where the server is running, which can be changed in main.go
 
