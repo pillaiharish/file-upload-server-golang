@@ -16,8 +16,8 @@ import (
 func main() {
 	// home, err := os.UserHomeDir()
 	// uploadPath := filepath.Join(home, "/.upload")
-    home := "D:\\19"//os.UserHomeDir()
-	uploadPath := filepath.Join(home, ".uploads")
+    home, _ := os.UserHomeDir()
+	uploadPath := filepath.Join(home, "uploads")
 
     err := os.MkdirAll(uploadPath, os.ModePerm)
 	if err != nil {
