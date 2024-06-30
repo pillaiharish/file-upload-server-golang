@@ -10,19 +10,16 @@ import (
 	"strings"
 	"sync"
 	"time"
+    "net"
 )
 
 func main() {
 	// home, err := os.UserHomeDir()
 	// uploadPath := filepath.Join(home, "/.upload")
-	home, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Printf("Error getting home directory: %s\n", err)
-		return
-	}
+    home := "D:\\19"//os.UserHomeDir()
 	uploadPath := filepath.Join(home, ".uploads")
 
-	err = os.MkdirAll(uploadPath, os.ModePerm)
+    err := os.MkdirAll(uploadPath, os.ModePerm)
 	if err != nil {
 		fmt.Println("Error creating upload directory:", err)
 		return
@@ -37,6 +34,13 @@ func main() {
 		fileUploadHandler(w, r, uploadPath)
 	})
 	fmt.Println("Server started on :8989")
+    ip, err := GetPrivateIP()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	fmt.Println("Possible urls:", ip)
 	err = http.ListenAndServe(":8989", nil)
 	if err != nil {
 		fmt.Printf("Error starting server: %s\n", err)
@@ -179,4 +183,46 @@ func logUploadDetails(filePath string, newPath string, fileSize int64) {
 	if _, err = logFile.WriteString(logEntry); err != nil {
 		fmt.Println("Error writing to log file:", err)
 	}
+}
+
+func GetPrivateIP() (string, error) {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+    var ipv4s string
+	for _, iface := range interfaces {
+		// Skip down interfaces, loopback interfaces, and point-to-point interfaces
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagPointToPoint != 0 {
+			continue
+		}
+
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return "", err
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+
+			// Check if the IP address is a private IP address
+			if ip.IsLoopback() || !ip.IsGlobalUnicast() {
+				continue
+			}
+
+			if ipv4 := ip.To4(); ipv4 != nil {
+                ipv4s = "http://" + ipv4.String() + ":8989 , "  + ipv4s
+			}
+		}
+        
+	}
+    
+
+	return ipv4s,err//"", fmt.Errorf("no private IP address found")
 }
